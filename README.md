@@ -13,7 +13,7 @@ The project is intentionally small:
 
 ## Product preview
 
-<video src=".github/assets/demo.mp4" controls muted loop playsinline width="100%"></video>
+![OpsPilot Lite demo](.github/assets/demo.gif)
 
 ### Overview
 

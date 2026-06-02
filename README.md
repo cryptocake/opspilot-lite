@@ -11,6 +11,19 @@ The project is intentionally small:
 - Jinja + HTMX for an operator-facing workspace
 - pluggable execution with safe dry-run defaults
 
+## Product preview
+
+![OpsPilot Lite demo](.github/assets/demo.gif)
+
+### Overview
+
+![OpsPilot Lite overview](.github/assets/overview.png)
+
+### Workspace
+
+![OpsPilot Lite workspace](.github/assets/workspace.png)
+
+
 ## What it is for
 
 OpsPilot Lite is a starting point for teams that need a framework they can fork and extend for:

@@ -1,0 +1,19 @@
+services:
+  opspilot-lite:
+    build: .
+    ports:
+      - "${OPSPILOT_PORT:-8080}:8080"
+    volumes:
+      - opspilot-data:/app/data
+    environment:
+      OPSPILOT_DATABASE_URL: ${OPSPILOT_DATABASE_URL:-sqlite:////app/data/opspilot.db}
+      OPSPILOT_LLM_PROVIDER: ${OPSPILOT_LLM_PROVIDER:-fake}
+      OPSPILOT_OPENAI_BASE_URL: ${OPSPILOT_OPENAI_BASE_URL:-}
+      OPSPILOT_OPENAI_API_KEY: ${OPSPILOT_OPENAI_API_KEY:-}
+      OPSPILOT_MODEL: ${OPSPILOT_MODEL:-}
+      OPSPILOT_INBOX_PATH: ${OPSPILOT_INBOX_PATH:-examples/inbox}
+      OPSPILOT_EXECUTION_MODE: ${OPSPILOT_EXECUTION_MODE:-dry_run}
+      OPSPILOT_WEBHOOK_SINK_URL: ${OPSPILOT_WEBHOOK_SINK_URL:-}
+      OPSPILOT_WEBHOOK_TIMEOUT_SECONDS: ${OPSPILOT_WEBHOOK_TIMEOUT_SECONDS:-10}
+volumes:
+  opspilot-data:

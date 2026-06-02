@@ -1,0 +1,1 @@
+Our nightly sync stopped working after yesterday's API key rotation. The dashboard shows an authentication error and customers are waiting.

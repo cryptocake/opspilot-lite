@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="detail-hero">
+  <div>
+    <p class="eyebrow">Audit trail</p>
+    <h1>Every state change is visible</h1>
+    <p>OpsPilot logs intake, AI triage, approvals, edits, rejections, executions, and failures in plain language.</p>
+  </div>
+</section>
+
+<section class="audit-preview full">
+  <div class="timeline">
+    {% for event in events %}
+      <div class="event">
+        <span></span>
+        <div>
+          <b>{{ event.label }}</b>
+          <p>{{ event.message }}</p>
+          <small>{{ event.model.created_at }}</small>
+        </div>
+      </div>
+    {% else %}
+      <div class="empty-state"><h3>No audit events yet</h3><p>Load the demo or process inbound requests to populate this timeline.</p></div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

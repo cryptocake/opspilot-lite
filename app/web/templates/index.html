@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+    <p class="eyebrow">Open-source workflow framework</p>
+    <h1>Turn unstructured requests into controlled, auditable operations workflows.</h1>
+    <p class="hero-subtitle">
+      OpsPilot Lite is a FastAPI framework for teams that need AI-assisted intake, structured triage,
+      human approval, safe execution, and a visible audit trail before wiring the system into real tools.
+    </p>
+    <div class="hero-actions">
+      <form method="post" action="/demo/ingest"><button>Load demo workflows</button></form>
+      <a class="button ghost" href="/workspace">Open workspace</a>
+    </div>
+  </div>
+  <aside class="story-card">
+    <span class="pill warm">What ships today</span>
+    <h2>Production-minded defaults without enterprise bloat.</h2>
+    <ul class="check-list">
+      <li>Deterministic local demo mode</li>
+      <li>Structured AI outputs validated by Pydantic</li>
+      <li>Human approval before side effects</li>
+      <li>Pluggable execution through dry-run or webhook delivery</li>
+      <li>Auditable state changes from intake to execution</li>
+    </ul>
+  </aside>
+</section>
+
+<section class="metrics">
+  <div><strong>{{ request_count }}</strong><span>Requests in the workspace</span></div>
+  <div><strong>{{ pending_actions|length }}</strong><span>Actions still needing review or retry</span></div>
+  <div><strong>{{ completed_action_count }}</strong><span>Executed actions</span></div>
+</section>
+
+<section class="workflow-inbox">
+  <div class="workflow-inbox-header">
+    <div class="section-heading compact">
+      <p class="eyebrow">Framework walkthrough</p>
+      <h2>Each request becomes a visible workflow record.</h2>
+      <p>
+        The home page shows the same data model your team can extend: request intake, AI interpretation,
+        proposed actions, approval state, and audit evidence.
+      </p>
+    </div>
+  </div>
+
+  <div class="workflow-list">
+    {% for card in workflow_cards %}
+      <article class="workflow-card stage-{{ card.stage.active|lower|replace(' ', '-') }}">
+        <div class="workflow-card-header">
+          <div>
+            <div class="card-topline left">
+              <span class="pill warm">{{ card.triage.category_label if card.triage else 'New request' }}</span>
+              <span class="confidence">{{ card.triage.confidence_percent if card.triage else '—' }}% confidence</span>
+              <span class="muted">{{ card.triage.priority if card.triage else 'Review' }} priority</span>
+            </div>
+            <h3>{{ card.title }}</h3>
+            <p>{{ card.triage.summary if card.triage else card.item.body }}</p>
+          </div>
+          <div class="workflow-status-panel">
+            <span class="pill action-status">{{ card.stage.active }}</span>
+            <small>{{ card.open_action_count }} action{{ '' if card.open_action_count == 1 else 's' }} still open</small>
+          </div>
+        </div>
+
+        <div class="stage-track" aria-label="Workflow stage">
+          {% for step in card.stage.steps %}
+            <div class="stage-step {{ step.state }}">
+              <span></span>
+              <b>{{ step.label }}</b>
+            </div>
+          {% endfor %}
+        </div>
+
+        {% if card.triage and card.triage.entities %}
+          <div class="detected-context">
+            <b>Detected systems</b>
+            <div>
+              {% for entity in card.triage.entities %}
+                <span>{{ entity.value }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="embedded-workflow">
+          <div class="embedded-heading">
+            <p class="eyebrow">Proposed workflow</p>
+            {% if card.open_action_count > 0 %}
+              <form method="post" action="/requests/{{ card.item.id }}/approve-actions">
+                <button class="compact-button">Approve all pending actions</button>
+              </form>
+            {% endif %}
+          </div>
+          <div class="workflow-actions">
+            {% for action in card.actions %}
+              <div class="workflow-action-row">
+                <div class="action-number">{{ loop.index }}</div>
+                <div class="action-copy">
+                  <div class="action-row-title">
+                    <b>{{ action.label }}</b>
+                    <span class="pill mini">{{ action.status_label }}</span>
+                  </div>
+                  <p>{{ action.model.title }}</p>
+                  <dl class="highlights compact-highlights">
+                    {% for item in action.highlights[:2] %}
+                      <div>
+                        <dt>{{ item.label }}</dt>
+                        <dd>{{ item.value }}</dd>
+                      </div>
+                    {% endfor %}
+                  </dl>
+                  <details class="payload-review">
+                    <summary>Review JSON payload</summary>
+                    <pre>{{ action.payload_pretty }}</pre>
+                  </details>
+                </div>
+                <div class="row-actions">
+                  {% if action.status == 'pending' %}
+                    <form method="post" action="/actions/{{ action.model.id }}/approve"><button>Approve</button></form>
+                  {% elif action.status in ['approved', 'edited'] %}
+                    <form method="post" action="/actions/{{ action.model.id }}/execute"><button>Execute</button></form>
+                  {% elif action.status == 'failed' %}
+                    <form method="post" action="/actions/{{ action.model.id }}/approve"><button>Retry approval</button></form>
+                  {% else %}
+                    <span class="muted">{{ action.status_label }}</span>
+                  {% endif %}
+                  {% if action.editable %}
+                    <form method="post" action="/actions/{{ action.model.id }}/reject"><button class="secondary">Reject</button></form>
+                  {% endif %}
+                </div>
+              </div>
+            {% else %}
+              <div class="empty-state slim"><p>No actions proposed yet.</p></div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="mini-audit">
+          <b>Recent audit</b>
+          <div>
+            {% for event in card.events %}
+              <span>{{ event.label }}</span>
+            {% else %}
+              <span>Waiting for first audit event</span>
+            {% endfor %}
+          </div>
+          <a href="/requests/{{ card.item.id }}">Open workflow record →</a>
+        </div>
+      </article>
+    {% else %}
+      <div class="empty-state">
+        <h3>No workflow cards yet</h3>
+        <p>Load the demo data or send requests to the API to populate the workspace.</p>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="explainer">
+  <div class="section-heading">
+    <p class="eyebrow">Execution model</p>
+    <h2>Five framework stages teams can keep or replace.</h2>
+  </div>
+  <div class="pipeline">
+    <div><span>1</span><b>Receive</b><p>Folder and webhook connectors normalize inbound work into RequestItem records.</p></div>
+    <div><span>2</span><b>Understand</b><p>The AI layer classifies intent and extracts structured context.</p></div>
+    <div><span>3</span><b>Propose</b><p>Workflow routing creates reviewable action payloads.</p></div>
+    <div><span>4</span><b>Approve</b><p>Humans approve, edit, reject, or retry actions before execution.</p></div>
+    <div><span>5</span><b>Execute</b><p>Executors dry-run locally or deliver normalized payloads to downstream tools.</p></div>
+  </div>
+</section>
+
+<section class="audit-preview">
+  <div class="section-heading compact">
+    <p class="eyebrow">Recent audit log</p>
+    <h2>Every transition is visible</h2>
+  </div>
+  <div class="timeline">
+    {% for event in events %}
+      <div class="event">
+        <span></span>
+        <div><b>{{ event.label }}</b><p>{{ event.message }}</p></div>
+      </div>
+    {% else %}
+      <p class="empty">No audit events yet.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

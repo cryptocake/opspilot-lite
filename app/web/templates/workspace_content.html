@@ -1,0 +1,218 @@
+<div id="workspace-root" class="workspace-shell">
+  <aside class="workspace-sidebar">
+    <a class="workspace-brand" href="/">
+      <span class="brand-mark">OP</span>
+      <span>OpsPilot Lite</span>
+    </a>
+    <nav class="workspace-nav">
+      <a class="active" href="/workspace">Workflow Inbox</a>
+      <a href="/audit">Audit Trail</a>
+      <a href="/docs">API Docs</a>
+      <a href="/">Public Home</a>
+    </nav>
+    <div class="sidebar-note">
+      <b>Execution mode</b>
+      <p>Actions are reviewed as JSON before execution, so teams can keep humans in control even when the framework is connected to live tools.</p>
+    </div>
+  </aside>
+
+  <main class="workspace-main">
+    <header class="workspace-topbar">
+      <div>
+        <p class="eyebrow">Operations workspace</p>
+        <h1>Workflow Inbox</h1>
+        <p>Review AI-generated actions, edit payloads, approve what should run, and keep the audit trail complete.</p>
+      </div>
+      <div class="workspace-user">
+        <span>Approval queue</span>
+        <b>{{ pending_actions|length }}</b>
+      </div>
+    </header>
+
+    <section class="workspace-analytics">
+      <article>
+        <span>Requests triaged</span>
+        <strong>{{ request_count }}</strong>
+        <p>Workflow records currently stored</p>
+      </article>
+      <article>
+        <span>Open actions</span>
+        <strong>{{ pending_actions|length }}</strong>
+        <p>Require review, approval, or retry</p>
+      </article>
+      <article>
+        <span>Executed actions</span>
+        <strong>{{ completed_action_count }}</strong>
+        <p>Successfully sent through the executor layer</p>
+      </article>
+      <article>
+        <span>Failures needing attention</span>
+        <strong>{{ failed_action_count }}</strong>
+        <p>Visible for operator retry instead of silent loss</p>
+      </article>
+    </section>
+
+    <section class="workspace-value-strip">
+      <b>Framework defaults:</b>
+      <span>structured intake</span>
+      <span>human approval</span>
+      <span>editable payloads</span>
+      <span>auditable execution</span>
+    </section>
+
+    <section class="workspace-grid">
+      <div class="workspace-column main-column">
+        <div class="workspace-section-title">
+          <div>
+            <p class="eyebrow">Live workflow queue</p>
+            <h2>Requests ready for review</h2>
+          </div>
+          <span>{{ workflow_cards|length }} active cards</span>
+        </div>
+
+        {% for card in workflow_cards %}
+          <article class="workspace-card stage-{{ card.stage.active|lower|replace(' ', '-') }}">
+            <div class="workspace-card-header">
+              <div>
+                <div class="card-topline left">
+                  <span class="pill warm">{{ card.triage.category_label if card.triage else 'New request' }}</span>
+                  <span class="confidence">{{ card.triage.confidence_percent if card.triage else '—' }}% confidence</span>
+                  <span class="muted">{{ card.triage.priority if card.triage else 'Review' }} priority</span>
+                </div>
+                <h3>{{ card.title }}</h3>
+                <p>{{ card.triage.summary if card.triage else card.item.body }}</p>
+              </div>
+              <div class="workflow-status-panel">
+                <span class="pill action-status">{{ card.stage.active }}</span>
+                <small>{{ card.open_action_count }} open action{{ '' if card.open_action_count == 1 else 's' }}</small>
+              </div>
+            </div>
+
+            <div class="stage-track slim-track" aria-label="Workflow stage">
+              {% for step in card.stage.steps %}
+                <div class="stage-step {{ step.state }}">
+                  <span></span>
+                  <b>{{ step.label }}</b>
+                </div>
+              {% endfor %}
+            </div>
+
+            {% if card.triage and card.triage.entities %}
+              <div class="detected-context compact-context">
+                <b>Detected business systems</b>
+                <div>
+                  {% for entity in card.triage.entities %}
+                    <span>{{ entity.value }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+
+            <div class="approval-explainer">
+              <b>What you are reviewing</b>
+              <p>Each action includes business context, the exact JSON payload, and controls for editing, approval, rejection, and execution.</p>
+            </div>
+
+            <div class="workspace-actions-list">
+              {% for action in card.actions %}
+                <div class="workspace-action-row">
+                  <div class="action-number">{{ loop.index }}</div>
+                  <div class="action-copy">
+                    <div class="action-row-title">
+                      <b>{{ action.label }}</b>
+                      <span class="pill mini">{{ action.status_label }}</span>
+                    </div>
+                    <p class="impact-line">{{ action.impact }}</p>
+                    <dl class="highlights compact-highlights">
+                      {% for item in action.highlights %}
+                        <div>
+                          <dt>{{ item.label }}</dt>
+                          <dd>{{ item.value }}</dd>
+                        </div>
+                      {% endfor %}
+                    </dl>
+                    <details class="payload-review"{% if action.status in ['pending', 'approved', 'edited', 'failed'] %} open{% endif %}>
+                      <summary>Review / edit JSON payload</summary>
+                      {% if action.editable %}
+                        <form class="payload-form" hx-post="/actions/{{ action.model.id }}/edit" hx-target="#workspace-root" hx-swap="outerHTML">
+                          <textarea name="payload">{{ action.payload_pretty }}</textarea>
+                          <div class="payload-form-actions">
+                            <button class="secondary" type="submit">Save payload edits</button>
+                          </div>
+                        </form>
+                      {% else %}
+                        <pre>{{ action.payload_pretty }}</pre>
+                      {% endif %}
+                    </details>
+                  </div>
+                  <div class="row-actions live-actions">
+                    {% if action.status == 'pending' %}
+                      <button hx-post="/actions/{{ action.model.id }}/approve" hx-target="#workspace-root" hx-swap="outerHTML">Approve</button>
+                    {% elif action.status in ['approved', 'edited'] %}
+                      <button hx-post="/actions/{{ action.model.id }}/execute" hx-target="#workspace-root" hx-swap="outerHTML">Execute</button>
+                    {% elif action.status == 'failed' %}
+                      <button hx-post="/actions/{{ action.model.id }}/approve" hx-target="#workspace-root" hx-swap="outerHTML">Retry</button>
+                    {% elif action.status == 'executed' %}
+                      <span class="sent-state">Executed</span>
+                    {% else %}
+                      <span class="muted">{{ action.status_label }}</span>
+                    {% endif %}
+                    {% if action.editable %}
+                      <button class="secondary" hx-post="/actions/{{ action.model.id }}/reject" hx-target="#workspace-root" hx-swap="outerHTML">Reject</button>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+
+            <div class="workspace-card-footer">
+              {% if card.open_action_count > 0 %}
+                <button class="compact-button" hx-post="/requests/{{ card.item.id }}/approve-actions" hx-target="#workspace-root" hx-swap="outerHTML">
+                  Approve all pending actions for this request
+                </button>
+              {% endif %}
+              <div class="mini-audit compact-audit">
+                <b>Trust log</b>
+                <div>
+                  {% for event in card.events %}
+                    <span>{{ event.label }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </article>
+        {% else %}
+          <div class="empty-state">
+            <h3>No workflow cards yet</h3>
+            <p>Go back home and load the demo or send requests to the webhook endpoint.</p>
+          </div>
+        {% endfor %}
+      </div>
+
+      <aside class="workspace-column insight-column">
+        <div class="workspace-section-title compact-title">
+          <div>
+            <p class="eyebrow">Why teams use this</p>
+            <h2>Framework benefits</h2>
+          </div>
+        </div>
+        <div class="impact-card">
+          <b>OpsPilot handles the messy middle.</b>
+          <p>It receives a request, structures it, proposes next actions, and keeps execution behind an approval gate instead of letting prompts trigger hidden side effects.</p>
+        </div>
+        <div class="impact-list">
+          <div><b>Inbound operations</b><p>Normalize email, forms, and webhook data into one request model.</p></div>
+          <div><b>AI guardrails</b><p>Validate every classification and payload before an operator acts on it.</p></div>
+          <div><b>Execution control</b><p>Switch between dry-run mode and a live webhook sink without changing the workflow UI.</p></div>
+          <div><b>Extension path</b><p>Add new connectors, routes, and executors without replacing the framework core.</p></div>
+        </div>
+        <div class="workspace-trust-log">
+          <h3>Recent trust log</h3>
+          {% for event in events[:6] %}
+            <div class="event mini-event"><span></span><div><b>{{ event.label }}</b><p>{{ event.message }}</p></div></div>
+          {% endfor %}
+        </div>
+      </aside>
+    </section>
+  </main>
+</div>

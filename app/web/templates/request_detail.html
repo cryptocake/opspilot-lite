@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+<a class="back-link" href="/workspace">← Back to workspace</a>
+
+{% if item %}
+<section class="detail-hero">
+  <div>
+    <p class="eyebrow">Workflow record</p>
+    <h1>{{ item.subject or 'Untitled request' }}</h1>
+    <p>{{ item.body }}</p>
+  </div>
+  <span class="pill warm">{{ status_labels.get(item.status, item.status) }}</span>
+</section>
+
+{% if triage %}
+<section class="insight-grid">
+  <article class="insight-card large">
+    <p class="eyebrow">AI interpretation</p>
+    <h2>{{ triage.category_label }}</h2>
+    <p>{{ triage.summary }}</p>
+  </article>
+  <article class="insight-card">
+    <p class="eyebrow">Priority</p>
+    <h2>{{ triage.priority }}</h2>
+    <p>Suggested urgency for operator review.</p>
+  </article>
+  <article class="insight-card">
+    <p class="eyebrow">Confidence</p>
+    <h2>{{ triage.confidence_percent }}%</h2>
+    <p>Visible confidence helps teams judge when to inspect more closely.</p>
+  </article>
+</section>
+
+{% if triage.entities %}
+<section class="soft-section">
+  <h2>Detected business context</h2>
+  <div class="entity-list">
+    {% for entity in triage.entities %}
+      <span>{{ entity.kind|title }}: {{ entity.value }}</span>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endif %}
+
+<section>
+  <div class="section-heading compact">
+    <p class="eyebrow">Proposed next steps</p>
+    <h2>Actions and payloads</h2>
+  </div>
+  <div class="action-list-wide">
+    {% for action in actions %}
+      <article class="action-card">
+        <div class="card-topline">
+          <span class="pill action-status">{{ action.status_label }}</span>
+          <span class="muted">{{ action.label }}</span>
+        </div>
+        <h3>{{ action.model.title }}</h3>
+        <p>{{ action.impact }}</p>
+        <dl class="highlights">
+          {% for item in action.highlights %}
+            <div>
+              <dt>{{ item.label }}</dt>
+              <dd>{{ item.value }}</dd>
+            </div>
+          {% endfor %}
+        </dl>
+        <details class="payload-review" open>
+          <summary>JSON payload</summary>
+          <pre>{{ action.payload_pretty }}</pre>
+        </details>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="audit-preview">
+  <div class="section-heading compact">
+    <p class="eyebrow">Audit trail</p>
+    <h2>What happened to this request</h2>
+  </div>
+  <div class="timeline">
+    {% for event in events %}
+      <div class="event">
+        <span></span>
+        <div><b>{{ event.label }}</b><p>{{ event.message }}</p></div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% else %}
+<div class="empty-state"><h1>Request not found</h1></div>
+{% endif %}
+{% endblock %}

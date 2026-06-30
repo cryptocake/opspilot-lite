@@ -18,3 +18,17 @@ def test_sales_inquiry_routes_to_reply_and_checklist(session):
     actions = route_workflow(session, request, triage_model, triage)
     assert [a.action_type for a in actions] == ["draft_reply", "create_discovery_checklist"]
     assert json.loads(actions[0].payload_json)["category"] == "sales_inquiry"
+
+
+def test_internal_task_routes_to_single_task(session):
+    request = RequestItem(source_type="test", source_ref="2", body="Onboard the new analyst")
+    session.add(request)
+    session.flush()
+    triage_model = TriageResult(
+        request_id=request.id, category="internal_task", priority="medium", confidence=0.82, summary="x"
+    )
+    session.add(triage_model)
+    session.flush()
+    triage = TriageOutput(category="internal_task", priority="medium", confidence=0.82, summary="x")
+    actions = route_workflow(session, request, triage_model, triage)
+    assert [a.action_type for a in actions] == ["create_task"]

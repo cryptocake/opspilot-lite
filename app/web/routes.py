@@ -14,7 +14,7 @@ from app.errors import ConfigurationError, InvalidStateError, NotFoundError
 from app.execution.executor import execute_action
 from app.ingestion.folder import ingest_folder
 from app.models import AuditEvent, ProposedAction, RequestItem, TriageResult
-from app.request_state import COMPLETED_ACTION_STATUSES, OPEN_ACTION_STATUSES
+from app.request_state import COMPLETED_ACTION_STATUSES, OPEN_ACTION_STATUSES, triage_needs_review
 from app.service import process_all_new_requests
 
 router = APIRouter()
@@ -59,6 +59,14 @@ EVENT_LABELS = {
     "action.executed": "Action executed",
     "action.failed": "Execution failed",
 }
+
+ACTION_IMPACT = {
+    "draft_reply": "Produces a reviewable customer message before anything is sent externally.",
+    "create_task": "Turns the request into accountable internal work with context and priority.",
+    "create_discovery_checklist": "Creates the questions needed to scope the automation safely.",
+    "summarize_meeting": "Extracts decisions, owners, and next steps from unstructured notes.",
+}
+DEFAULT_ACTION_IMPACT = "Moves the request into a controlled, auditable workflow."
 
 
 def _safe_json(value: str | None) -> dict[str, Any]:
@@ -126,13 +134,7 @@ def _payload_highlights(action: ProposedAction) -> list[dict[str, str]]:
 
 
 def _business_impact(action: ProposedAction) -> str:
-    impacts = {
-        "draft_reply": "Produces a reviewable customer message before anything is sent externally.",
-        "create_task": "Turns the request into accountable internal work with context and priority.",
-        "create_discovery_checklist": "Creates the questions needed to scope the automation safely.",
-        "summarize_meeting": "Extracts decisions, owners, and next steps from unstructured notes.",
-    }
-    return impacts.get(action.action_type, "Moves the request into a controlled, auditable workflow.")
+    return ACTION_IMPACT.get(action.action_type, DEFAULT_ACTION_IMPACT)
 
 
 
@@ -153,15 +155,14 @@ def _action_view(action: ProposedAction) -> dict[str, Any]:
 
 
 def _friendly_request_title(item: RequestItem, triage: dict[str, Any] | None) -> str:
-    body = item.body.lower()
-    if "shopify" in body and "airtable" in body:
-        return "Shopify → Airtable automation request"
-    if "api key" in body or "stopped working" in body:
-        return "API key rotation broke nightly sync"
-    if "meeting notes" in body or "launch target" in body:
-        return "Meeting follow-up with owners and launch date"
-    if triage:
-        return triage["category_label"]
+    """Derive a readable card title from real data — the first sentence of the AI
+    summary once triaged, otherwise the request's own subject."""
+    if triage and triage.get("summary"):
+        summary = " ".join(triage["summary"].split())
+        first_sentence = summary.split(". ")[0].rstrip(".")
+        if len(first_sentence) <= 80:
+            return first_sentence
+        return f"{first_sentence[:80].rsplit(' ', 1)[0]}…"
     return item.subject or "Untitled request"
 
 
@@ -236,6 +237,7 @@ def _triage_view(triage: TriageResult | None) -> dict[str, Any] | None:
         "confidence_percent": round(triage.confidence * 100),
         "summary": triage.summary,
         "entities": entities,
+        "needs_review": triage_needs_review(triage.confidence, bool(extracted.get("needs_human_review", True))),
     }
 
 
@@ -350,6 +352,12 @@ def web_approve_request_actions(
     request: Request,
     session: Session = Depends(get_session),
 ):
+    triage = session.exec(select(TriageResult).where(TriageResult.request_id == request_id)).first()
+    triage_view = _triage_view(triage)
+    if triage_view and triage_view["needs_review"]:
+        _raise_http_error(
+            InvalidStateError("Request flagged for manual review; approve its actions individually")
+        )
     actions = session.exec(
         select(ProposedAction).where(
             ProposedAction.request_id == request_id,

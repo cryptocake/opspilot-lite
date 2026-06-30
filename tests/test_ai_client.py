@@ -15,3 +15,14 @@ def test_fake_client_classifies_support_request():
 
 def test_fake_client_classifies_meeting_followup():
     assert classify("Meeting notes: Sara owns API docs") == "meeting_followup"
+
+
+def test_fake_client_classifies_internal_task():
+    assert classify("Please handle onboarding for the new analyst") == "internal_task"
+
+
+def test_fake_client_escalates_unknown_with_low_confidence():
+    result = FakeLLMClient().complete_json("", "just checking in, nothing specific")
+    assert result["category"] == "unknown"
+    assert result["needs_human_review"] is True
+    assert result["confidence"] < 0.6

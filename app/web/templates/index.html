@@ -53,6 +53,7 @@
               <span class="pill warm">{{ card.triage.category_label if card.triage else 'New request' }}</span>
               <span class="confidence">{{ card.triage.confidence_percent if card.triage else '—' }}% confidence</span>
               <span class="muted">{{ card.triage.priority if card.triage else 'Review' }} priority</span>
+              {% if card.triage and card.triage.needs_review %}<span class="pill review-flag">Needs manual review</span>{% endif %}
             </div>
             <h3>{{ card.title }}</h3>
             <p>{{ card.triage.summary if card.triage else card.item.body }}</p>
@@ -86,7 +87,7 @@
         <div class="embedded-workflow">
           <div class="embedded-heading">
             <p class="eyebrow">Proposed workflow</p>
-            {% if card.open_action_count > 0 %}
+            {% if card.open_action_count > 0 and not (card.triage and card.triage.needs_review) %}
               <form method="post" action="/requests/{{ card.item.id }}/approve-actions">
                 <button class="compact-button">Approve all pending actions</button>
               </form>

@@ -7,7 +7,8 @@ def test_demo_ingest_populates_home_and_workspace(client):
     assert "Workflow Inbox" in response.text
     home = client.get("/")
     assert home.status_code == 200
-    assert "Shopify → Airtable automation request" in home.text
+    # Card title is derived from the AI summary, not a hardcoded demo string.
+    assert "syncs Shopify orders into Airtable" in home.text
     assert "Review JSON payload" in home.text
 
 

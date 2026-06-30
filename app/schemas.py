@@ -25,7 +25,9 @@ class TriageOutput(BaseModel):
     confidence: float = Field(ge=0, le=1)
     summary: str
     entities: list[ExtractedEntity] = Field(default_factory=list)
-    recommended_actions: list[str] = Field(default_factory=list)
+    # Set by the model when it is uncertain. Combined with `confidence`, this drives
+    # the manual-review gate (see app.request_state.triage_needs_review). It does not
+    # choose actions — routing is deterministic by category, on purpose.
     needs_human_review: bool = True
 
 

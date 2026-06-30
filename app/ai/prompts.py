@@ -9,6 +9,6 @@ Classify each request into one category:
 Return strict JSON that matches the TriageOutput schema.
 Summaries must be concise, factual, and safe for a human operator to review.
 Entities should capture concrete systems, owners, documents, or business objects mentioned in the request.
-Recommended actions must be short machine-friendly identifiers.
+Set confidence honestly: use a low value when the category or intent is ambiguous.
 Prefer safe escalation: when uncertain, use category unknown and set needs_human_review to true.
 """

@@ -11,6 +11,15 @@ OPEN_ACTION_STATUSES = {
 }
 COMPLETED_ACTION_STATUSES = {ActionStatus.EXECUTED.value, ActionStatus.REJECTED.value}
 
+# Below this triage confidence, a request is flagged for manual review: its actions
+# must be approved individually rather than via the bulk "approve all" shortcut.
+CONFIDENCE_REVIEW_THRESHOLD = 0.6
+
+
+def triage_needs_review(confidence: float, needs_human_review: bool) -> bool:
+    """Whether a triaged request must be reviewed action-by-action by an operator."""
+    return bool(needs_human_review) or confidence < CONFIDENCE_REVIEW_THRESHOLD
+
 
 def determine_request_status(actions: list[ProposedAction], has_triage: bool) -> str:
     if not has_triage:

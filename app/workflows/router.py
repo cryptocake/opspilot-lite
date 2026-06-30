@@ -62,4 +62,6 @@ def _action_specs(triage: TriageOutput) -> list[tuple[str, str, dict]]:
             ("draft_reply", "Draft finance acknowledgement", draft_reply_payload(triage)),
             ("create_task", "Create finance review task", task_payload(triage)),
         ]
+    if triage.category == "internal_task":
+        return [("create_task", "Create internal task", task_payload(triage))]
     return [("draft_reply", "Draft human review response", draft_reply_payload(triage))]

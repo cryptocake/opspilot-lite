@@ -231,8 +231,10 @@ button.secondary,
 .pill.warm { background: #f7eadc; color: #7a4d2b; }
 .pill.action-status { background: #eef6ef; color: var(--green); }
 .pill.mini { padding: 4px 8px; background: #f6f1e9; color: var(--muted); }
+.pill.review-flag { background: #f6e2dd; color: var(--red); }
 .confidence { color: var(--soft); font-size: 13px; font-weight: 700; }
 .muted { color: var(--soft); font-size: 13px; }
+.review-note { color: var(--red); font-size: 13px; font-weight: 600; margin: 0; }
 
 .metrics {
   display: grid;

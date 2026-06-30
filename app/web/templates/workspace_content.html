@@ -78,6 +78,7 @@
                   <span class="pill warm">{{ card.triage.category_label if card.triage else 'New request' }}</span>
                   <span class="confidence">{{ card.triage.confidence_percent if card.triage else '—' }}% confidence</span>
                   <span class="muted">{{ card.triage.priority if card.triage else 'Review' }} priority</span>
+                  {% if card.triage and card.triage.needs_review %}<span class="pill review-flag">Needs manual review</span>{% endif %}
                 </div>
                 <h3>{{ card.title }}</h3>
                 <p>{{ card.triage.summary if card.triage else card.item.body }}</p>
@@ -166,10 +167,12 @@
             </div>
 
             <div class="workspace-card-footer">
-              {% if card.open_action_count > 0 %}
+              {% if card.open_action_count > 0 and not (card.triage and card.triage.needs_review) %}
                 <button class="compact-button" hx-post="/requests/{{ card.item.id }}/approve-actions" hx-target="#workspace-root" hx-swap="outerHTML">
                   Approve all pending actions for this request
                 </button>
+              {% elif card.triage and card.triage.needs_review %}
+                <p class="review-note">Low-confidence triage — review and approve each action individually.</p>
               {% endif %}
               <div class="mini-audit compact-audit">
                 <b>Trust log</b>

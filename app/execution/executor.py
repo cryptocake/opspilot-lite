@@ -9,6 +9,10 @@ from app.execution.factory import get_action_executor
 from app.models import ActionStatus, ProposedAction
 from app.request_state import recalculate_request_status
 
+# EDITED counts as an explicit operator approval: editing requires the operator to open and
+# rewrite the exact payload, which is a stronger review signal than a one-click approve. The
+# safety invariant is "no execution without explicit operator action" — approve or edit both
+# satisfy it; PENDING/FAILED do not.
 EXECUTABLE_STATUSES = {ActionStatus.APPROVED.value, ActionStatus.EDITED.value}
 
 

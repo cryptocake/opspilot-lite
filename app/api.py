@@ -46,9 +46,9 @@ def api_webhook_request(payload: WebhookRequest, session: Session = Depends(get_
         actions = process_new_request(session, item, get_llm_client())
         if not actions:
             actions = _request_actions(session, item.id or 0)
+        return {"request_id": item.id, "actions": [action.id for action in actions], "duplicate": not created}
     except (ConfigurationError, InvalidStateError, NotFoundError) as exc:
         _raise_http_error(exc)
-    return {"request_id": item.id, "actions": [action.id for action in actions], "duplicate": not created}
 
 
 @router.get("/requests")

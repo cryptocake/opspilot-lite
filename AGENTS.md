@@ -33,27 +33,29 @@ Set up:
 
 ```bash
 python3 -m venv .venv
-. .venv/bin/activate
+. .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -e .[dev]
 cp .env.example .env
 ```
 
+The commands below assume the virtualenv is activated.
+
 Run tests:
 
 ```bash
-.venv/bin/python -m pytest -q
+python -m pytest -q
 ```
 
 Run lint:
 
 ```bash
-.venv/bin/ruff check .
+ruff check .
 ```
 
 Run the app:
 
 ```bash
-.venv/bin/python -m uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload
 ```
 
 ## Configuration
@@ -94,7 +96,8 @@ Important environment variables:
 ## Safety invariants
 
 Do not break these:
-- no execution without approval
+- no execution without an explicit operator action (approve, or edit which records a payload rewrite); a merely proposed action must never execute
+- low-confidence triage stays flagged for manual review (see `triage_needs_review`)
 - AI output must be validated before routing
 - operators must be able to inspect payload JSON before execution
 - invalid state transitions must fail loudly

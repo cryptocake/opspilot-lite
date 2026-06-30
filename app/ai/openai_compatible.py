@@ -3,6 +3,8 @@ from typing import Any
 
 import httpx
 
+from app.errors import LLMError
+
 
 class OpenAICompatibleClient:
     def __init__(self, base_url: str, api_key: str, model: str):
@@ -28,10 +30,12 @@ class OpenAICompatibleClient:
             timeout=30,
         )
         response.raise_for_status()
-        content = response.json()["choices"][0]["message"]["content"]
-        if isinstance(content, dict):
-            return content
-        if isinstance(content, list):
-            text = "".join(part.get("text", "") for part in content if isinstance(part, dict))
-            return json.loads(text)
-        return json.loads(content)
+        try:
+            content = response.json()["choices"][0]["message"]["content"]
+            if isinstance(content, dict):
+                return content
+            if isinstance(content, list):
+                content = "".join(part.get("text", "") for part in content if isinstance(part, dict))
+            return json.loads(content)
+        except (KeyError, IndexError, TypeError, ValueError) as exc:
+            raise LLMError(f"Provider {self.model} returned a response that was not valid triage JSON") from exc

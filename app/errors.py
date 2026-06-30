@@ -12,3 +12,7 @@ class InvalidStateError(OpsPilotError):
 
 class ConfigurationError(OpsPilotError):
     """Raised when runtime configuration is incomplete or invalid."""
+
+
+class LLMError(OpsPilotError):
+    """Raised when an LLM provider returns an unusable or malformed response."""

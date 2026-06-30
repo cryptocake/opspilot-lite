@@ -82,7 +82,7 @@ That separation is the main design contract of the project.
 
 ```bash
 python3 -m venv .venv
-. .venv/bin/activate
+. .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -e .[dev]
 cp .env.example .env
 python -m uvicorn app.main:app --reload
@@ -222,7 +222,8 @@ Keep `dry_run` for safe local use, or replace/extend the webhook executor for:
 ## Safety guarantees
 
 The framework is built around a few hard rules:
-- no execution without approval
+- no execution without an explicit operator action — approving an action, or editing its payload, both count; a merely proposed action can never execute
+- low-confidence triage is flagged for manual review and cannot be bulk-approved
 - dry-run is the default
 - the AI output is validated before routing
 - the exact action payload is visible before execution
@@ -232,9 +233,11 @@ The framework is built around a few hard rules:
 
 ## Development commands
 
+With the virtualenv activated:
+
 ```bash
-.venv/bin/python -m pytest -q
-.venv/bin/ruff check .
+python -m pytest -q
+ruff check .
 ```
 
 ## Repository guide
